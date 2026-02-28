@@ -1,0 +1,52 @@
+name: Book Golf Tee Time
+
+on:
+  schedule:
+    # Run at 11:00 AM UTC (6:00 AM EST / 7:00 AM EDT)
+    - cron: '0 11 * * *'
+
+  # Allow manual triggering
+  workflow_dispatch:
+
+jobs:
+  book-tee-time:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install Chrome
+      run: |
+        wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+        sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
+        sudo apt-get update
+        sudo apt-get install -y google-chrome-stable
+
+    - name: Install Python dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run booking bot
+      env:
+        GOLF_USERNAME: ${{ secrets.GOLF_USERNAME }}
+        GOLF_PASSWORD: ${{ secrets.GOLF_PASSWORD }}
+      run: |
+        python booking_bot.py
+
+    - name: Upload logs and screenshots
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: booking-results-${{ github.run_number }}
+        path: |
+          *.log
+          *.png
+          screenshots/
+        retention-days: 30
